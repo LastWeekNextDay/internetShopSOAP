@@ -66,25 +66,8 @@
             </xs:sequence>
         </xs:complexType>
     </xs:element>
-    
-    <xs:element name="getCartOfAccountRequest">
-        <xs:complexType>
-            <xs:sequence>
-                <xs:element name="accountId" type="xs:int"/>
-                <xs:element name="username" type="xs:string"/>
-            </xs:sequence>
-        </xs:complexType>
-    </xs:element>
 
-    <xs:element name="getCartOfAccountResponse">
-        <xs:complexType>
-            <xs:sequence>
-                <xs:element name="cart" type="tns:Cart"/>
-            </xs:sequence>
-        </xs:complexType>
-    </xs:element>
-
-    <xs:element name="getItemFromCartOfAccountRequest">
+    <xs:element name="removeItemFromCartRequest">
         <xs:complexType>
             <xs:sequence>
                 <xs:element name="accountId" type="xs:int"/>
@@ -94,7 +77,71 @@
         </xs:complexType>
     </xs:element>
 
-    <xs:element name="getItemFromCartOfAccountResponse">
+    <xs:element name="removeItemFromCartResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="ack" type="xs:boolean"/>
+                <xs:element name="message" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="addItemToCartRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="accountId" type="xs:int"/>
+                <xs:element name="username" type="xs:string"/>
+                <xs:element name="itemId" type="xs:int"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="addItemToCartResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="ack" type="xs:boolean"/>
+                <xs:element name="message" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="getCategoriesRequest">
+        <xs:complexType/>
+    </xs:element>
+
+    <xs:element name="getCategoriesResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="categories" type="tns:Category" maxOccurs="unbounded"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="getItemsRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="categoryId" type="xs:int"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="getItemsResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="items" type="tns:Item" maxOccurs="unbounded"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="getItemRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="itemId" type="xs:int"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="getItemResponse">
         <xs:complexType>
             <xs:sequence>
                 <xs:element name="item" type="tns:Item"/>
