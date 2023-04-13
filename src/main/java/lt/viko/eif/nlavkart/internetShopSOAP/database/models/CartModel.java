@@ -10,6 +10,7 @@ import java.util.List;
  * CartModel class.
  */
 @XmlType(name = "carts", propOrder = {"id", "items"})
+@XmlRootElement(name = "cart")
 @XmlAccessorType(XmlAccessType.FIELD)
 @Entity
 @Table(name = "cart")
@@ -24,9 +25,11 @@ public class CartModel {
     /**
      * Items in the cart.
      */
+    @JoinTable(name = "cart_item", joinColumns = @JoinColumn(name = "CartModel_id"), inverseJoinColumns = @JoinColumn(name = "items_id"),
+            uniqueConstraints = {})
     @XmlElementWrapper(name = "items")
     @XmlElement(name = "item")
-    @OneToMany(targetEntity = ItemModel.class, cascade = CascadeType.ALL)
+    @ManyToMany(targetEntity = ItemModel.class, cascade = CascadeType.ALL)
     private List<ItemModel> items = new ArrayList<>();
 
     /**

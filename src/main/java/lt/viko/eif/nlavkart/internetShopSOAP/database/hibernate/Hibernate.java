@@ -1,6 +1,8 @@
 package lt.viko.eif.nlavkart.internetShopSOAP.database.hibernate;
 
 import lt.viko.eif.nlavkart.internetShopSOAP.database.models.AccountModel;
+import lt.viko.eif.nlavkart.internetShopSOAP.database.models.CategoryModel;
+import lt.viko.eif.nlavkart.internetShopSOAP.database.models.ItemModel;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
@@ -159,7 +161,7 @@ public class Hibernate {
      *
      * @param object object
      */
-    public void save(AccountModel object){
+    public void save(Object object){
         session.save(object);
     }
 
@@ -169,9 +171,27 @@ public class Hibernate {
      * @param query query
      * @param resultType result type
      */
-    public List<AccountModel> query(String query, boolean resultType) {
+    public List<AccountModel> queryAccountModel(String query, boolean resultType) {
         if (resultType) {
             return session.createQuery(query, AccountModel.class).list();
+        } else {
+            session.createQuery(query).executeUpdate();
+            return null;
+        }
+    }
+
+    public List<CategoryModel> queryCategoryModel(String query, boolean resultType) {
+        if (resultType) {
+            return session.createQuery(query, CategoryModel.class).list();
+        } else {
+            session.createQuery(query).executeUpdate();
+            return null;
+        }
+    }
+
+    public List<ItemModel> queryItemModel(String query, boolean resultType) {
+        if (resultType) {
+            return session.createQuery(query, ItemModel.class).list();
         } else {
             session.createQuery(query).executeUpdate();
             return null;

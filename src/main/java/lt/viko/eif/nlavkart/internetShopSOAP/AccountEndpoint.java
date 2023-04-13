@@ -5,6 +5,7 @@ import generatedsoap.*;
 import lt.viko.eif.nlavkart.internetShopSOAP.database.hibernate.Hibernate;
 import lt.viko.eif.nlavkart.internetShopSOAP.database.models.AccountModel;
 import lt.viko.eif.nlavkart.internetShopSOAP.database.models.CartModel;
+import lt.viko.eif.nlavkart.internetShopSOAP.database.models.CategoryModel;
 import lt.viko.eif.nlavkart.internetShopSOAP.database.models.ItemModel;
 import lt.viko.eif.nlavkart.internetShopSOAP.database.util.ModelGeneratedConverter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,14 +32,14 @@ public class AccountEndpoint {
         hibernate.createSessionFactory();
         hibernate.openTransaction();
         String query = "";
-        if (request.getAccountId() > -1) {
+        if (request.getAccountId() >= 0) {
             query = "from AccountModel where id = " + request.getAccountId();
         } else if (!request.getUsername().equals("")) {
             query = "from AccountModel where username = '" + request.getUsername() + "'";
         } else {
             return null;
         }
-        response.setAccount(ModelGeneratedConverter.convertAccount(hibernate.query(query, true).get(0)));
+        response.setAccount(ModelGeneratedConverter.convertAccount(hibernate.queryAccountModel(query, true).get(0)));
         hibernate.closeTransaction();
         return response;
     }
@@ -50,7 +51,7 @@ public class AccountEndpoint {
         Hibernate hibernate = new Hibernate();
         hibernate.createSessionFactory();
         hibernate.openTransaction();
-        for (AccountModel accountModel : hibernate.query("from AccountModel", true)) {
+        for (AccountModel accountModel : hibernate.queryAccountModel("from AccountModel", true)) {
             response.getAccounts().add(ModelGeneratedConverter.convertAccount(accountModel));
         }
         hibernate.closeTransaction();
@@ -66,7 +67,7 @@ public class AccountEndpoint {
         Hibernate hibernate = new Hibernate();
         hibernate.createSessionFactory();
         hibernate.openTransaction();
-        if (hibernate.query(query, true).size() >= 1) {
+        if (hibernate.queryAccountModel(query, true).size() >= 1) {
             response.setAck(false);
             response.setMessage("Username already exists");
             return response;
@@ -81,7 +82,7 @@ public class AccountEndpoint {
         hibernate.openTransaction();
         query = "from AccountModel where username = '" + request.getUsername() +
                 "' and password = '" + request.getPassword() + "'";
-        response.setAck(hibernate.query(query, true).size() >= 1);
+        response.setAck(hibernate.queryAccountModel(query, true).size() >= 1);
         hibernate.closeTransaction();
         return response;
     }
@@ -104,15 +105,15 @@ public class AccountEndpoint {
         } else {
             return null;
         }
-        if (hibernate.query(query, true).size() == 0){
+        if (hibernate.queryAccountModel(query, true).size() == 0){
             response.setAck(false);
             response.setMessage("Account not found");
             return response;
         }
-        hibernate.query(deleteQuery, false);
+        hibernate.queryAccountModel(deleteQuery, false);
         hibernate.closeTransaction();
         hibernate.openTransaction();
-        if (hibernate.query(query, true).size() > 0){
+        if (hibernate.queryAccountModel(query, true).size() > 0){
             response.setAck(false);
             response.setMessage("Account not removed");
         } else {
@@ -122,14 +123,14 @@ public class AccountEndpoint {
         return response;
     }
 
-    @PayloadRoot(namespace = NAMESPACE_URI, localPart = "getCartOfAccountRequest")
+    @PayloadRoot(namespace = NAMESPACE_URI, localPart = "removeItemFromCartRequest")
     @ResponsePayload
-    public GetCartOfAccountResponse getCartOfAccount(@RequestPayload GetCartOfAccountRequest request){
-        GetCartOfAccountResponse response = new GetCartOfAccountResponse();
+    public RemoveItemFromCartResponse removeItemFromCartResponse(@RequestPayload RemoveItemFromCartRequest request){
+        RemoveItemFromCartResponse response = new RemoveItemFromCartResponse();
         Hibernate hibernate = new Hibernate();
         hibernate.createSessionFactory();
         hibernate.openTransaction();
-        String query = "";
+        String query;
         if (request.getAccountId() >= 0){
             query = "from AccountModel where id = " + request.getAccountId();
         } else if (!request.getUsername().equals("")){
@@ -137,23 +138,50 @@ public class AccountEndpoint {
         } else {
             return null;
         }
-        List<AccountModel> accounts = hibernate.query(query, true);
+        List<AccountModel> output = hibernate.queryAccountModel(query, true);
         hibernate.closeTransaction();
-        if (accounts.size() == 0){
-            return null;
+        if (output.size() == 0){
+            response.setAck(false);
+            response.setMessage("Account not found");
+            return response;
         }
-        response.setCart(ModelGeneratedConverter.convertCart(accounts.get(0).getCart()));
+        AccountModel accountModel = output.get(0);
+        CartModel cart = accountModel.getCart();
+        List<ItemModel> items = cart.getItems();
+        int amount = items.size();
+        for (ItemModel item : items){
+            if (item.getId() == request.getItemId()){
+                items.remove(item);
+                break;
+            }
+        }
+        cart.setItems(items);
+        hibernate.openTransaction();
+        hibernate.getSession().saveOrUpdate(cart);
+        hibernate.closeTransaction();
+        hibernate.openTransaction();
+        query = "from AccountModel where id = " + accountModel.getId();
+        accountModel = hibernate.queryAccountModel(query, true).get(0);
+        hibernate.closeTransaction();
+        cart = accountModel.getCart();
+        items = cart.getItems();
+        if (items.size() == amount){
+            response.setAck(false);
+            response.setMessage("Item not removed");
+        } else {
+            response.setAck(true);
+        }
         return response;
     }
 
-    @PayloadRoot(namespace = NAMESPACE_URI, localPart = "getItemFromCartOfAccountRequest")
+    @PayloadRoot(namespace = NAMESPACE_URI, localPart = "addItemToCartRequest")
     @ResponsePayload
-    public GetItemFromCartOfAccountResponse getItemFromCartOfAccountResponse(@RequestPayload GetItemFromCartOfAccountRequest request){
-        GetItemFromCartOfAccountResponse response = new GetItemFromCartOfAccountResponse();
+    public AddItemToCartResponse addItemToCartResponse(@RequestPayload AddItemToCartRequest request){
+        AddItemToCartResponse response = new AddItemToCartResponse();
         Hibernate hibernate = new Hibernate();
         hibernate.createSessionFactory();
         hibernate.openTransaction();
-        String query = "";
+        String query;
         if (request.getAccountId() >= 0){
             query = "from AccountModel where id = " + request.getAccountId();
         } else if (!request.getUsername().equals("")){
@@ -161,19 +189,101 @@ public class AccountEndpoint {
         } else {
             return null;
         }
-        List<AccountModel> accounts = hibernate.query(query, true);
+        List<AccountModel> output = hibernate.queryAccountModel(query, true);
         hibernate.closeTransaction();
-        if (accounts.size() == 0){
-            return null;
+        if (output.size() == 0){
+            response.setAck(false);
+            response.setMessage("Account not found");
+            return response;
         }
-        CartModel cart = accounts.get(0).getCart();
-        for (ItemModel item : cart.getItems()){
+        AccountModel accountModel = output.get(0);
+        CartModel cart = accountModel.getCart();
+        List<ItemModel> items = cart.getItems();
+        int amount = 0;
+        for (ItemModel item : items){
             if (item.getId() == request.getItemId()){
-                response.setItem(ModelGeneratedConverter.convertItem(item));
-                return response;
+                amount++;
             }
         }
-        return null;
+        hibernate.openTransaction();
+        ItemModel itemModel = hibernate.queryItemModel("from ItemModel where id = " + request.getItemId(), true).get(0);
+        items.add(itemModel);
+        cart.setItems(items);
+        hibernate.getSession().saveOrUpdate(cart);
+        hibernate.closeTransaction();
+        hibernate.openTransaction();
+        query = "from AccountModel where id = " + accountModel.getId();
+        accountModel = hibernate.queryAccountModel(query, true).get(0);
+        hibernate.closeTransaction();
+        cart = accountModel.getCart();
+        items = cart.getItems();
+        int newAmount = 0;
+        for (ItemModel item : items){
+            if (item.getId() == request.getItemId()){
+                newAmount++;
+            }
+        }
+        if (newAmount == amount){
+            response.setAck(false);
+            response.setMessage("Item not added");
+        } else {
+            response.setAck(true);
+        }
+        return response;
     }
 
+    @PayloadRoot(namespace = NAMESPACE_URI, localPart = "getCategoriesRequest")
+    @ResponsePayload
+    public GetCategoriesResponse getCategoriesResponse(@RequestPayload GetCategoriesRequest request){
+        GetCategoriesResponse response = new GetCategoriesResponse();
+        Hibernate hibernate = new Hibernate();
+        hibernate.createSessionFactory();
+        hibernate.openTransaction();
+        String query = "from CategoryModel";
+        List<CategoryModel> output = hibernate.queryCategoryModel(query, true);
+        hibernate.closeTransaction();
+        for (CategoryModel categoryModel : output){
+            response.getCategories().add(ModelGeneratedConverter.convertCategory(categoryModel));
+        }
+        return response;
+    }
+
+    @PayloadRoot(namespace = NAMESPACE_URI, localPart = "getItemsRequest")
+    @ResponsePayload
+    public GetItemsResponse getItemsResponse(@RequestPayload GetItemsRequest request){
+        GetItemsResponse response = new GetItemsResponse();
+        Hibernate hibernate = new Hibernate();
+        hibernate.createSessionFactory();
+        hibernate.openTransaction();
+        String query;
+        if (request.getCategoryId() >= 0){
+            query = "FROM ItemModel where category_id = " + request.getCategoryId();
+        } else {
+            query = "FROM ItemModel";
+        }
+        List<ItemModel> output = hibernate.queryItemModel(query, true);
+        hibernate.closeTransaction();
+        for (ItemModel itemModel : output){
+            response.getItems().add(ModelGeneratedConverter.convertItem(itemModel));
+        }
+        return response;
+    }
+
+    @PayloadRoot(namespace = NAMESPACE_URI, localPart = "getItemRequest")
+    @ResponsePayload
+    public GetItemResponse getItemResponse(@RequestPayload GetItemRequest request){
+        GetItemResponse response = new GetItemResponse();
+        Hibernate hibernate = new Hibernate();
+        hibernate.createSessionFactory();
+        hibernate.openTransaction();
+        String query = "from ItemModel where id = " + request.getItemId();
+        List<ItemModel> output = hibernate.queryItemModel(query, true);
+        hibernate.closeTransaction();
+        if (output.size() == 0){
+            return null;
+        }
+        ItemModel itemModel = output.get(0);
+        response.setItem(ModelGeneratedConverter.convertItem(itemModel));
+        return response;
+    }
 }

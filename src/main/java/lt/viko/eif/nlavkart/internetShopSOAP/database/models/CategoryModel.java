@@ -1,12 +1,18 @@
 package lt.viko.eif.nlavkart.internetShopSOAP.database.models;
 
 import jakarta.persistence.*;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * CategoryModel class.
  */
+
 @XmlType(name = "categories", propOrder = {"id", "name", "description"})
+@XmlRootElement(name = "category")
+@XmlAccessorType(XmlAccessType.FIELD)
 @Entity
 @Table(name = "category")
 public class CategoryModel {
