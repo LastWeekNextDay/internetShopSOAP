@@ -33,7 +33,7 @@ public class ItemModel {
     /**
      * CategoryModel of the item.
      */
-    @ManyToOne(targetEntity = CategoryModel.class, cascade = CascadeType.ALL)
+    @ManyToOne(targetEntity = CategoryModel.class, cascade = {CascadeType.MERGE} )
     private CategoryModel category;
     /**
      * Price of the item.

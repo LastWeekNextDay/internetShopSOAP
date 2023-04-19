@@ -31,7 +31,7 @@ public class AccountModel {
     /**
      * CartModel of the account.
      */
-    @OneToOne(targetEntity = CartModel.class, cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToOne(targetEntity = CartModel.class, cascade = {CascadeType.ALL, CascadeType.MERGE})
     private CartModel cart;
 
     /**

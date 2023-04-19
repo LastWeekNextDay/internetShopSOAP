@@ -182,9 +182,9 @@ public class AccountEndpoint {
         hibernate.openTransaction();
         String query;
         if (request.getAccountId() >= 0){
-            query = "from AccountModel where id = " + request.getAccountId() + " and deleted = false";
+            query = "from AccountModel where id = " + request.getAccountId();
         } else if (!request.getUsername().equals("")){
-            query = "from AccountModel where username = '" + request.getUsername() + "'" + " and deleted = false";
+            query = "from AccountModel where username = '" + request.getUsername() + "'";
         } else {
             response.setAck(false);
             response.setMessage("Provide account id or username");
@@ -207,34 +207,40 @@ public class AccountEndpoint {
             }
         }
         hibernate.openTransaction();
-        ItemModel itemModel = hibernate.queryItemModel("from ItemModel where id = " + request.getItemId(), true).get(0);
-        if (itemModel.getDeleted()){
+        List<AccountModel> output = hibernate.queryAccountModel(query, true);
+        hibernate.closeTransaction();
+        output.removeIf(AccountModel::getDeleted);
+        if (output.size() == 0){
+            response.setAck(false);
+            response.setMessage("Account not found");
+            return response;
+        }
+        AccountModel accountModel = output.get(0);
+        CartModel cart = accountModel.getCart();
+        List<ItemModel> items = cart.getItems();
+        hibernate.openTransaction();
+        List<ItemModel> output1 = hibernate.queryItemModel("from ItemModel where id = " + request.getItemId(), true);
+        hibernate.closeTransaction();
+        output1.removeIf(ItemModel::getDeleted);
+        if (output1.size() == 0){
             response.setAck(false);
             response.setMessage("Item not found");
             return response;
         }
-        items.add(itemModel);
+        for (ItemModel item : items){
+            if (item.getId() == request.getItemId()){
+                response.setAck(false);
+                response.setMessage("Item already in cart");
+                return response;
+            }
+        }
+        ItemModel itemModel = output1.get(0);
+        hibernate.openTransaction();
+        items.add(itemModel);;
         cart.setItems(items);
         hibernate.getSession().saveOrUpdate(cart);
         hibernate.closeTransaction();
-        hibernate.openTransaction();
-        query = "from AccountModel where id = " + accountModel.getId() + " and deleted = false";
-        accountModel = hibernate.queryAccountModel(query, true).get(0);
-        hibernate.closeTransaction();
-        cart = accountModel.getCart();
-        items = cart.getItems();
-        int newAmount = 0;
-        for (ItemModel item : items){
-            if (item.getId() == request.getItemId() && !item.getDeleted()){
-                newAmount++;
-            }
-        }
-        if (newAmount == amount){
-            response.setAck(false);
-            response.setMessage("Item not added");
-        } else {
-            response.setAck(true);
-        }
+        response.setAck(true);
         return response;
     }
 
