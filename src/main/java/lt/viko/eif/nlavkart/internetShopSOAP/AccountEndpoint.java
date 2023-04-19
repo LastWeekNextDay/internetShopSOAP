@@ -133,9 +133,9 @@ public class AccountEndpoint {
         hibernate.openTransaction();
         String query = "";
         if (request.getAccountId() >= 0){
-            query = "from AccountModel where id = " + request.getAccountId() + " and deleted = false";
+            query = "from AccountModel where id = " + request.getAccountId();
         } else if (!request.getUsername().equals("")){
-            query = "from AccountModel where username = '" + request.getUsername() + "'" + " and deleted = false";
+            query = "from AccountModel where username = '" + request.getUsername() + "'";
         }
         List<AccountModel> output = hibernate.queryAccountModel(query, true);
         hibernate.closeTransaction();
@@ -149,7 +149,7 @@ public class AccountEndpoint {
         List<ItemModel> items = cart.getItems();
         int amount = items.size();
         for (ItemModel item : items){
-            if (item.getId() == request.getItemId() && !item.getDeleted()){
+            if (item.getId() == request.getItemId()){
                 items.remove(item);
                 break;
             }
@@ -159,7 +159,7 @@ public class AccountEndpoint {
         hibernate.getSession().saveOrUpdate(cart);
         hibernate.closeTransaction();
         hibernate.openTransaction();
-        query = "from AccountModel where id = " + accountModel.getId() + " and deleted = false";
+        query = "from AccountModel where id = " + accountModel.getId();
         accountModel = hibernate.queryAccountModel(query, true).get(0);
         hibernate.closeTransaction();
         cart = accountModel.getCart();
@@ -179,7 +179,6 @@ public class AccountEndpoint {
         AddItemToCartResponse response = new AddItemToCartResponse();
         Hibernate hibernate = new Hibernate();
         hibernate.createSessionFactory();
-        hibernate.openTransaction();
         String query;
         if (request.getAccountId() >= 0){
             query = "from AccountModel where id = " + request.getAccountId();
@@ -189,22 +188,6 @@ public class AccountEndpoint {
             response.setAck(false);
             response.setMessage("Provide account id or username");
             return response;
-        }
-        List<AccountModel> output = hibernate.queryAccountModel(query, true);
-        hibernate.closeTransaction();
-        if (output.size() == 0){
-            response.setAck(false);
-            response.setMessage("Account not found");
-            return response;
-        }
-        AccountModel accountModel = output.get(0);
-        CartModel cart = accountModel.getCart();
-        List<ItemModel> items = cart.getItems();
-        int amount = 0;
-        for (ItemModel item : items){
-            if (item.getId() == request.getItemId() && !item.getDeleted()){
-                amount++;
-            }
         }
         hibernate.openTransaction();
         List<AccountModel> output = hibernate.queryAccountModel(query, true);
