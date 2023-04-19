@@ -29,7 +29,7 @@ public class CartModel {
             uniqueConstraints = {})
     @XmlElementWrapper(name = "items")
     @XmlElement(name = "item")
-    @ManyToMany(targetEntity = ItemModel.class, cascade = CascadeType.ALL)
+    @OneToMany(targetEntity = ItemModel.class, cascade = CascadeType.ALL)
     private List<ItemModel> items = new ArrayList<>();
 
     /**

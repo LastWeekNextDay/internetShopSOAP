@@ -31,8 +31,13 @@ public class AccountModel {
     /**
      * CartModel of the account.
      */
-    @OneToOne(targetEntity = CartModel.class, cascade = CascadeType.ALL)
+    @OneToOne(targetEntity = CartModel.class, cascade = CascadeType.ALL, orphanRemoval = true)
     private CartModel cart;
+
+    /**
+     * Check if account is deleted.
+     */
+    private boolean deleted;
 
     /**
      * No-Args constructor.
@@ -47,13 +52,15 @@ public class AccountModel {
      * @param username username
      * @param password password
      * @param cart     cartModel
+     * @param deleted  deleted
      */
 
-    public AccountModel(int id, String username, String password, CartModel cart) {
+    public AccountModel(int id, String username, String password, CartModel cart, boolean deleted) {
         this.id = id;
         this.username = username;
         this.password = password;
         this.cart = cart;
+        this.deleted = deleted;
     }
 
     /**
@@ -126,5 +133,23 @@ public class AccountModel {
      */
     public void setCart(CartModel cart) {
         this.cart = cart;
+    }
+
+    /**
+     * Get deleted.
+     *
+     * @return deleted
+     */
+    public boolean getDeleted() {
+        return deleted;
+    }
+
+    /**
+     * Set deleted.
+     *
+     * @param deleted deleted
+     */
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
     }
 }

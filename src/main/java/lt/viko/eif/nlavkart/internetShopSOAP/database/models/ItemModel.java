@@ -9,7 +9,7 @@ import jakarta.xml.bind.annotation.XmlType;
 /**
  * ItemModel class.
  */
-@XmlType(name = "items", propOrder = {"id", "name", "description", "category", "price", "quantity"})
+@XmlType(name = "items", propOrder = {"id", "name", "description", "category", "price", "quantity", "deleted"})
 @XmlRootElement(name = "item")
 @XmlAccessorType(XmlAccessType.FIELD)
 @Entity
@@ -39,6 +39,11 @@ public class ItemModel {
      * Price of the item.
      */
     private double price;
+
+    /**
+     * Check if item is deleted.
+     */
+    private boolean deleted;
     /**
      * Quantity of the item.
      */
@@ -59,14 +64,16 @@ public class ItemModel {
      * @param category    categoryModel
      * @param price       price
      * @param quantity    quantity
+     * @param deleted     deleted
      */
-    public ItemModel(int id, String name, String description, CategoryModel category, double price, int quantity) {
+    public ItemModel(int id, String name, String description, CategoryModel category, double price, int quantity, boolean deleted) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.category = category;
         this.price = price;
         this.quantity = quantity;
+        this.deleted = deleted;
     }
 
     /**
@@ -94,6 +101,24 @@ public class ItemModel {
      */
     public String getName() {
         return name;
+    }
+
+    /**
+     * Get deleted.
+     *
+     * @return deleted
+     */
+    public boolean getDeleted() {
+        return deleted;
+    }
+
+    /**
+     * Set deleted.
+     *
+     * @param deleted deleted
+     */
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
     }
 
     /**
