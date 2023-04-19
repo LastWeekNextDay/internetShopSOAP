@@ -1,6 +1,7 @@
 package lt.viko.eif.nlavkart.internetShopSOAP.database.hibernate;
 
 import lt.viko.eif.nlavkart.internetShopSOAP.database.models.AccountModel;
+import lt.viko.eif.nlavkart.internetShopSOAP.database.models.CartModel;
 import lt.viko.eif.nlavkart.internetShopSOAP.database.models.CategoryModel;
 import lt.viko.eif.nlavkart.internetShopSOAP.database.models.ItemModel;
 import org.hibernate.Session;
@@ -192,6 +193,15 @@ public class Hibernate {
     public List<ItemModel> queryItemModel(String query, boolean resultType) {
         if (resultType) {
             return session.createQuery(query, ItemModel.class).list();
+        } else {
+            session.createQuery(query).executeUpdate();
+            return null;
+        }
+    }
+
+    public List<CartModel> queryCartModel(String query, boolean b) {
+        if (b) {
+            return session.createQuery(query, CartModel.class).list();
         } else {
             session.createQuery(query).executeUpdate();
             return null;
