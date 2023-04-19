@@ -37,9 +37,15 @@ public class AccountEndpoint {
         } else if (!request.getUsername().equals("")) {
             query = "from AccountModel where username = '" + request.getUsername() + "'";
         } else {
-            return null;
+            response.setAccount(null);
+            return response;
         }
-        response.setAccount(ModelGeneratedConverter.convertAccount(hibernate.queryAccountModel(query, true).get(0)));
+        try {
+            response.setAccount(ModelGeneratedConverter.convertAccount(hibernate.queryAccountModel(query, true).get(0)));
+        } catch (Exception e) {
+            response.setAccount(null);
+            return response;
+        }
         hibernate.closeTransaction();
         return response;
     }
@@ -102,8 +108,6 @@ public class AccountEndpoint {
         } else if (!request.getUsername().equals("")){
             query = "from AccountModel where username = '" + request.getUsername() + "'";
             deleteQuery = "delete from AccountModel where username = '" + request.getUsername() + "'";
-        } else {
-            return null;
         }
         if (hibernate.queryAccountModel(query, true).size() == 0){
             response.setAck(false);
@@ -130,13 +134,11 @@ public class AccountEndpoint {
         Hibernate hibernate = new Hibernate();
         hibernate.createSessionFactory();
         hibernate.openTransaction();
-        String query;
+        String query = "";
         if (request.getAccountId() >= 0){
             query = "from AccountModel where id = " + request.getAccountId();
         } else if (!request.getUsername().equals("")){
             query = "from AccountModel where username = '" + request.getUsername() + "'";
-        } else {
-            return null;
         }
         List<AccountModel> output = hibernate.queryAccountModel(query, true);
         hibernate.closeTransaction();
@@ -280,7 +282,8 @@ public class AccountEndpoint {
         List<ItemModel> output = hibernate.queryItemModel(query, true);
         hibernate.closeTransaction();
         if (output.size() == 0){
-            return null;
+            response.setItem(null);
+            return response;
         }
         ItemModel itemModel = output.get(0);
         response.setItem(ModelGeneratedConverter.convertItem(itemModel));
