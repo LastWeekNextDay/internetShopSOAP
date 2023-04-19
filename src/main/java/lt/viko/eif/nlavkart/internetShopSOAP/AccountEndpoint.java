@@ -14,6 +14,8 @@ import org.springframework.ws.server.endpoint.annotation.PayloadRoot;
 import org.springframework.ws.server.endpoint.annotation.RequestPayload;
 import org.springframework.ws.server.endpoint.annotation.ResponsePayload;
 
+import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 @Endpoint
@@ -40,12 +42,12 @@ public class AccountEndpoint {
             response.setAccount(null);
             return response;
         }
-        try {
-            response.setAccount(ModelGeneratedConverter.convertAccount(hibernate.queryAccountModel(query, true).get(0)));
-        } catch (Exception e) {
+        AccountModel accountModel = hibernate.queryAccountModel(query, true).get(0);
+        if (accountModel.getDeleted()) {
             response.setAccount(null);
             return response;
         }
+        response.setAccount(ModelGeneratedConverter.convertAccount(accountModel));
         hibernate.closeTransaction();
         return response;
     }
@@ -58,7 +60,9 @@ public class AccountEndpoint {
         hibernate.createSessionFactory();
         hibernate.openTransaction();
         for (AccountModel accountModel : hibernate.queryAccountModel("from AccountModel", true)) {
-            response.getAccounts().add(ModelGeneratedConverter.convertAccount(accountModel));
+            if (!accountModel.getDeleted()) {
+                response.getAccounts().add(ModelGeneratedConverter.convertAccount(accountModel));
+            }
         }
         hibernate.closeTransaction();
         return response;
@@ -69,7 +73,7 @@ public class AccountEndpoint {
     public CreateAccountResponse createAccount(@RequestPayload CreateAccountRequest request) {
         CreateAccountResponse response = new CreateAccountResponse();
         String query = "from AccountModel where username = '" + request.getUsername() +
-                "'";
+                "'" + " and deleted = false";
         Hibernate hibernate = new Hibernate();
         hibernate.createSessionFactory();
         hibernate.openTransaction();
@@ -87,7 +91,7 @@ public class AccountEndpoint {
         hibernate.closeTransaction();
         hibernate.openTransaction();
         query = "from AccountModel where username = '" + request.getUsername() +
-                "' and password = '" + request.getPassword() + "'";
+                "' and password = '" + request.getPassword() + "' and deleted = false";
         response.setAck(hibernate.queryAccountModel(query, true).size() >= 1);
         hibernate.closeTransaction();
         return response;
@@ -103,26 +107,19 @@ public class AccountEndpoint {
         String query = "";
         String deleteQuery = "";
         if (request.getAccountId() >= 0){
-            query = "from AccountModel where id = " + request.getAccountId();
-            deleteQuery = "delete from AccountModel where id = " + request.getAccountId();
+            query = "from AccountModel where id = " + request.getAccountId() + " and deleted = false";
         } else if (!request.getUsername().equals("")){
-            query = "from AccountModel where username = '" + request.getUsername() + "'";
-            deleteQuery = "delete from AccountModel where username = '" + request.getUsername() + "'";
+            query = "from AccountModel where username = '" + request.getUsername() + "'" + " and deleted = false";
         }
-        if (hibernate.queryAccountModel(query, true).size() == 0){
+        List<AccountModel> output = hibernate.queryAccountModel(query, true);
+        if (output.size() == 0){
             response.setAck(false);
             response.setMessage("Account not found");
             return response;
         }
-        hibernate.queryAccountModel(deleteQuery, false);
-        hibernate.closeTransaction();
-        hibernate.openTransaction();
-        if (hibernate.queryAccountModel(query, true).size() > 0){
-            response.setAck(false);
-            response.setMessage("Account not removed");
-        } else {
-            response.setAck(true);
-        }
+        AccountModel accountModel = output.get(0);
+        accountModel.setDeleted(true);
+        hibernate.getSession().saveOrUpdate(accountModel);
         hibernate.closeTransaction();
         return response;
     }
@@ -136,9 +133,9 @@ public class AccountEndpoint {
         hibernate.openTransaction();
         String query = "";
         if (request.getAccountId() >= 0){
-            query = "from AccountModel where id = " + request.getAccountId();
+            query = "from AccountModel where id = " + request.getAccountId() + " and deleted = false";
         } else if (!request.getUsername().equals("")){
-            query = "from AccountModel where username = '" + request.getUsername() + "'";
+            query = "from AccountModel where username = '" + request.getUsername() + "'" + " and deleted = false";
         }
         List<AccountModel> output = hibernate.queryAccountModel(query, true);
         hibernate.closeTransaction();
@@ -152,7 +149,7 @@ public class AccountEndpoint {
         List<ItemModel> items = cart.getItems();
         int amount = items.size();
         for (ItemModel item : items){
-            if (item.getId() == request.getItemId()){
+            if (item.getId() == request.getItemId() && !item.getDeleted()){
                 items.remove(item);
                 break;
             }
@@ -162,7 +159,7 @@ public class AccountEndpoint {
         hibernate.getSession().saveOrUpdate(cart);
         hibernate.closeTransaction();
         hibernate.openTransaction();
-        query = "from AccountModel where id = " + accountModel.getId();
+        query = "from AccountModel where id = " + accountModel.getId() + " and deleted = false";
         accountModel = hibernate.queryAccountModel(query, true).get(0);
         hibernate.closeTransaction();
         cart = accountModel.getCart();
@@ -185,11 +182,13 @@ public class AccountEndpoint {
         hibernate.openTransaction();
         String query;
         if (request.getAccountId() >= 0){
-            query = "from AccountModel where id = " + request.getAccountId();
+            query = "from AccountModel where id = " + request.getAccountId() + " and deleted = false";
         } else if (!request.getUsername().equals("")){
-            query = "from AccountModel where username = '" + request.getUsername() + "'";
+            query = "from AccountModel where username = '" + request.getUsername() + "'" + " and deleted = false";
         } else {
-            return null;
+            response.setAck(false);
+            response.setMessage("Provide account id or username");
+            return response;
         }
         List<AccountModel> output = hibernate.queryAccountModel(query, true);
         hibernate.closeTransaction();
@@ -203,25 +202,30 @@ public class AccountEndpoint {
         List<ItemModel> items = cart.getItems();
         int amount = 0;
         for (ItemModel item : items){
-            if (item.getId() == request.getItemId()){
+            if (item.getId() == request.getItemId() && !item.getDeleted()){
                 amount++;
             }
         }
         hibernate.openTransaction();
         ItemModel itemModel = hibernate.queryItemModel("from ItemModel where id = " + request.getItemId(), true).get(0);
+        if (itemModel.getDeleted()){
+            response.setAck(false);
+            response.setMessage("Item not found");
+            return response;
+        }
         items.add(itemModel);
         cart.setItems(items);
         hibernate.getSession().saveOrUpdate(cart);
         hibernate.closeTransaction();
         hibernate.openTransaction();
-        query = "from AccountModel where id = " + accountModel.getId();
+        query = "from AccountModel where id = " + accountModel.getId() + " and deleted = false";
         accountModel = hibernate.queryAccountModel(query, true).get(0);
         hibernate.closeTransaction();
         cart = accountModel.getCart();
         items = cart.getItems();
         int newAmount = 0;
         for (ItemModel item : items){
-            if (item.getId() == request.getItemId()){
+            if (item.getId() == request.getItemId() && !item.getDeleted()){
                 newAmount++;
             }
         }
@@ -259,14 +263,16 @@ public class AccountEndpoint {
         hibernate.openTransaction();
         String query;
         if (request.getCategoryId() >= 0){
-            query = "FROM ItemModel where category_id = " + request.getCategoryId();
+            query = "FROM ItemModel where category = ( FROM CategoryModel WHERE id = " + request.getCategoryId() + " )";
         } else {
             query = "FROM ItemModel";
         }
         List<ItemModel> output = hibernate.queryItemModel(query, true);
         hibernate.closeTransaction();
         for (ItemModel itemModel : output){
-            response.getItems().add(ModelGeneratedConverter.convertItem(itemModel));
+            if (!itemModel.getDeleted()){
+                response.getItems().add(ModelGeneratedConverter.convertItem(itemModel));
+            }
         }
         return response;
     }
@@ -281,12 +287,41 @@ public class AccountEndpoint {
         String query = "from ItemModel where id = " + request.getItemId();
         List<ItemModel> output = hibernate.queryItemModel(query, true);
         hibernate.closeTransaction();
+        for (ItemModel itemModel : output){
+            if (itemModel.getDeleted()){
+                output.remove(itemModel);
+            }
+        }
         if (output.size() == 0){
             response.setItem(null);
             return response;
         }
         ItemModel itemModel = output.get(0);
         response.setItem(ModelGeneratedConverter.convertItem(itemModel));
+        return response;
+    }
+
+    @PayloadRoot(namespace = NAMESPACE_URI, localPart = "removeItemRequest")
+    @ResponsePayload
+    public RemoveItemResponse removeItemResponse(@RequestPayload RemoveItemRequest request){
+        RemoveItemResponse response = new RemoveItemResponse();
+        Hibernate hibernate = new Hibernate();
+        hibernate.createSessionFactory();
+        hibernate.openTransaction();
+        List<ItemModel> output = hibernate.queryItemModel("from ItemModel where id = " + request.getItemId(), true);
+        hibernate.closeTransaction();
+        output.removeIf(ItemModel::getDeleted);
+        if (output.size() == 0){
+            response.setAck(false);
+            response.setMessage("Item not found");
+            return response;
+        }
+        hibernate.openTransaction();
+        ItemModel item = hibernate.queryItemModel("from ItemModel where id = " + request.getItemId(), true).get(0);
+        item.setDeleted(true);
+        hibernate.getSession().saveOrUpdate(item);
+        hibernate.closeTransaction();
+        response.setAck(true);
         return response;
     }
 }
